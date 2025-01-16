@@ -1,0 +1,7 @@
+numpy~=2.2.1
+pandas~=2.2.3
+scipy~=1.15.1
+tqdm~=4.67.1
+networkx~=3.4.2
+matplotlib~=3.10.0
+sympy~=1.13.3
