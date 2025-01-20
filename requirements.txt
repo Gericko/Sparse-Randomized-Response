@@ -5,3 +5,4 @@ tqdm~=4.67.1
 networkx~=3.4.2
 matplotlib~=3.10.0
 sympy~=1.13.3
+seaborn~=0.13.2

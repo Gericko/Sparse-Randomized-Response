@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DIR_LOGS = BASE_DIR / "logs"
 
 
-def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: GraphCRR, privacy_budget: float, degrees: dict[int,float]):
+def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: GraphCRR, privacy_budget: float, degrees: dict[int,float], rng):
     rv = laplace(0, 1 / privacy_budget)
     count = 0
     noise = 0
@@ -34,16 +34,16 @@ def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: Gra
         clipped_neighbors = sorted(islice(smaller_neighbors(graph, node), threshold))
         for i, j in combinations(clipped_neighbors, 2):
             count += compressed_graph.edge_estimation(i, j)
-        noise += (np.exp(privacy_budget) + 1) / (np.exp(privacy_budget) - 1) * threshold * rv.rvs()
+        noise += (np.exp(privacy_budget) + 1) / (np.exp(privacy_budget) - 1) * threshold * rv.rvs(random_state=rng)
     return count, noise
 
 
-def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence):
+def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence, rng):
     degrees = {n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs() for n, d in graph.degree()}
     compressed_budget = EDGE_SHARE * privacy_budget / alpha / 2
     compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
     download_cost = compressed_graph.upload_cost()
-    count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees)
+    count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
     return count, noise, download_cost
 
 
@@ -90,6 +90,7 @@ def get_parser():
         default=BETA,
         help="parameter beta of the algorithm",
     )
+    parser.add_argument("-s","--entropy", type=int, default=ENTROPY)
     parser.add_argument("-i", "--nb_iter", type=int, default=1, help="number of runs")
     return parser
 
@@ -105,11 +106,12 @@ def get_graph(graph_name):
 
 def experience_triangle(graph, seed, rng, param):
     rng = np.random.default_rng(rng)
-    for _ in trange(param["nb_iter"]):
+    seeds = seed.spawn(param["nb_iter"])
+    for i in trange(param["nb_iter"]):
         extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
         true_triangle = sum(nx.triangles(extracted_graph).values()) / 3
         start_time = time.time()
-        count, noise, d_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seed)
+        count, noise, d_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng)
         result = pd.DataFrame(
             [
                 {
@@ -131,8 +133,8 @@ def experience_triangle(graph, seed, rng, param):
 
 
 if __name__ == "__main__":
-    seed = SeedSequence(ENTROPY)
-    rng = np.random.default_rng(seed)
     config = vars(get_parser().parse_args())
+    seed = SeedSequence(config["entropy"])
+    rng = np.random.default_rng(seed)
     graph = get_graph(config["graph"])
     experience_triangle(graph, seed, rng, config)

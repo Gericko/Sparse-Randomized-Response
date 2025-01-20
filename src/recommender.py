@@ -146,13 +146,14 @@ def get_parser():
         default=BETA,
         help="parameter beta of the algorithm",
     )
+    parser.add_argument("-s", "--entropy", type=int, default=ENTROPY)
     parser.add_argument("-i", "--nb_iter", type=int, default=1, help="number of runs")
     return parser
 
 
 if __name__ == "__main__":
-    seed = SeedSequence(ENTROPY)
-    rng = np.random.default_rng(seed)
     config = vars(get_parser().parse_args())
+    seed = SeedSequence(config["entropy"])
+    rng = np.random.default_rng(seed)
     rating_by_user, nb_movies = get_dataset(config["dataset"])
     experience_ratings(rating_by_user, nb_movies, seed, rng, config)

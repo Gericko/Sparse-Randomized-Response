@@ -103,14 +103,15 @@ def get_parser():
         default=BETA,
         help="parameter beta of the algorithm",
     )
+    parser.add_argument("-s", "--entropy", type=int, default=ENTROPY)
     parser.add_argument("-i", "--nb_iter", type=int, default=1, help="number of runs")
     return parser
 
 
 if __name__ == "__main__":
-    seed = SeedSequence(ENTROPY)
-    rng = np.random.default_rng(seed)
     config = vars(get_parser().parse_args())
+    seed = SeedSequence(config["entropy"])
+    rng = np.random.default_rng(seed)
     df = pd.read_csv(DATA_DIR / DNA_FILE, sep=" ", names=["chr", "pos", "ref", "alt", "proba"])
     df_clipped = clip_frequency(df, config["threshold"])
     proba_vect = df_clipped["proba"].to_numpy()
