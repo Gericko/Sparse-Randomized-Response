@@ -39,7 +39,7 @@ def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: Gra
 
 
 def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence, rng):
-    degrees = {n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs() for n, d in graph.degree()}
+    degrees = {n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs(random_state=rng) for n, d in graph.degree()}
     compressed_budget = EDGE_SHARE * privacy_budget / alpha / 2
     compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
     download_cost = compressed_graph.upload_cost()
