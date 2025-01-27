@@ -13,7 +13,6 @@ import argparse
 from graph import smaller_neighbors, load_wiki, load_gplus, extract_random_subgraph
 from compressed_graph import GraphCRR
 
-
 MARGIN_DEGREES = 150
 DEGREE_SHARE = 0.1
 EDGE_SHARE = 0.45
@@ -43,8 +42,9 @@ def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, bet
     compressed_budget = EDGE_SHARE * privacy_budget / alpha / 2
     compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
     download_cost = compressed_graph.upload_cost()
+    huffman_cost = compressed_graph.huffman_cost()
     count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
-    return count, noise, download_cost
+    return count, noise, download_cost, huffman_cost
 
 
 def get_parser():
@@ -111,15 +111,17 @@ def experience_triangle(graph, seed, rng, param):
         extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
         true_triangle = sum(nx.triangles(extracted_graph).values()) / 3
         start_time = time.time()
-        count, noise, d_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng)
+        count, noise, d_cost, h_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng)
         result = pd.DataFrame(
             [
                 {
                     **param,
+                    "algorithm": "crr",
                     "true_count": true_triangle,
                     "count": count,
                     "noise": noise,
                     "download_cost": d_cost,
+                    "huffman_cost": h_cost,
                     "execution_time": time.time() - start_time,
                 }
             ]

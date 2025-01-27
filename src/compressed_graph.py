@@ -135,7 +135,10 @@ def experience_adjacency(graph, seed, rng, param):
     Q = get_Q_RR_from_neutral(0, [1], epsilon)
     result_list = []
     for i in trange(param["nb_iter"]):
-        extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
+        if param["graph_size"] < graph.number_of_nodes():
+            extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
+        else:
+            extracted_graph = graph
         node = rng.choice(list(extracted_graph.nodes()), 1)[0]
         start_time = time.time()
         vect = publish_adjacency_list_crr(extracted_graph, node, Q, epsilon, param["alpha"], param["beta"], seeds[i])
@@ -144,7 +147,9 @@ def experience_adjacency(graph, seed, rng, param):
             {
                 **param,
                 "degree": extracted_graph.degree(node),
-                "upload_cost": vect.expected_communication_cost,
+                "down_degree": down_degree(extracted_graph, node),
+                "expected_upload_cost": vect.expected_communication_cost,
+                "huffman_upload_cost": vect.communication_cost(),
                 "execution_time": execution_time,
             }
         )

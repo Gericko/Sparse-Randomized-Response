@@ -56,7 +56,8 @@ def experience_dna(frequencies, seed, rng, param):
                 **param,
                 "nb_variations": len(diffs),
                 "nb_locations": len(frequencies),
-                "upload_cost": vect.expected_communication_cost,
+                "expected_upload_cost": vect.expected_communication_cost,
+                "huffman_upload_cost": vect.communication_cost(),
                 "execution_time": execution_time,
             }
         )
