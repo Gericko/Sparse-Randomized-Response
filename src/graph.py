@@ -59,7 +59,7 @@ def show_infos(g: nx.Graph) -> None:
 
 def extract_random_subgraph(graph: nx.Graph, size: int, rng) -> nx.Graph:
     """
-    Extracts of random subgraph of a given from a graph by randomly
+    Extracts of random subgraph of a given size from a graph by randomly
     sampling from the original nodes
 
     :param graph: Graph
@@ -67,7 +67,7 @@ def extract_random_subgraph(graph: nx.Graph, size: int, rng) -> nx.Graph:
     :return: The subgraph
     """
     rng = np.random.default_rng(rng)
-    vertices = rng.choice(list(graph.nodes), size)
+    vertices = rng.choice(list(graph.nodes), size, replace=False)
     subgraph = graph.subgraph(vertices)
     return nx.convert_node_labels_to_integers(subgraph)
 
