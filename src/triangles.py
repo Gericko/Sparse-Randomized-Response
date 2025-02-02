@@ -109,7 +109,10 @@ def experience_triangle(graph, seed, rng, param):
     rng = np.random.default_rng(rng)
     seeds = seed.spawn(param["nb_iter"])
     for i in trange(param["nb_iter"]):
-        extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
+        if param["graph_size"] < g.number_of_nodes():
+            extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
+        else:
+            extracted_graph = graph
         true_triangle = sum(nx.triangles(extracted_graph).values()) / 3
         start_time = time.time()
         count, noise, d_cost, h_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng)
