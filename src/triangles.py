@@ -109,7 +109,7 @@ def experience_triangle(graph, seed, rng, param):
     rng = np.random.default_rng(rng)
     seeds = seed.spawn(param["nb_iter"])
     for i in trange(param["nb_iter"]):
-        if param["graph_size"] < g.number_of_nodes():
+        if param["graph_size"] < graph.number_of_nodes():
             extracted_graph = extract_random_subgraph(graph, param["graph_size"], rng)
         else:
             extracted_graph = graph
