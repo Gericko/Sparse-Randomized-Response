@@ -25,7 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DIR_LOGS = BASE_DIR / "logs"
 
 
-def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: GraphCRR, privacy_budget: float, degrees: dict[int,float], rng):
+def count_triangles_from_compressed_graph(
+    graph: nx.Graph,
+    compressed_graph: GraphCRR,
+    privacy_budget: float,
+    degrees: dict[int, float],
+    rng,
+):
     rv = laplace(0, 1 / privacy_budget)
     count = 0
     noise = 0
@@ -34,11 +40,22 @@ def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: Gra
         clipped_neighbors = sorted(islice(smaller_neighbors(graph, node), threshold))
         for i, j in combinations(clipped_neighbors, 2):
             count += compressed_graph.edge_estimation(i, j)
-        noise += (np.exp(privacy_budget) + 1) / (np.exp(privacy_budget) - 1) * threshold * rv.rvs(random_state=rng)
+        noise += (
+            (np.exp(privacy_budget) + 1)
+            / (np.exp(privacy_budget) - 1)
+            * threshold
+            * rv.rvs(random_state=rng)
+        )
     return count, noise
 
 
-def count_triangles_from_lazy_graph(graph: nx.Graph, lazy_graph: LazyGraphCRR, privacy_budget: float, degrees: dict[int,float], rng):
+def count_triangles_from_lazy_graph(
+    graph: nx.Graph,
+    lazy_graph: LazyGraphCRR,
+    privacy_budget: float,
+    degrees: dict[int, float],
+    rng,
+):
     rv = laplace(0, 1 / privacy_budget)
 
     noise = 0
@@ -47,7 +64,9 @@ def count_triangles_from_lazy_graph(graph: nx.Graph, lazy_graph: LazyGraphCRR, p
     expe = np.exp(privacy_budget)
     for node in graph:
         threshold = max(ceil(degrees[node] + MARGIN_DEGREES), 0)
-        clipped_neighbors[node] = sorted(islice(smaller_neighbors(graph, node), threshold))
+        clipped_neighbors[node] = sorted(
+            islice(smaller_neighbors(graph, node), threshold)
+        )
         for neighbors in clipped_neighbors[node]:
             upper_neighbors[neighbors].append(node)
         noise += (expe + 1) / (expe - 1) * threshold * rv.rvs(random_state=rng)
@@ -66,16 +85,31 @@ def count_triangles_from_lazy_graph(graph: nx.Graph, lazy_graph: LazyGraphCRR, p
     return count, noise
 
 
-def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence, rng, lazy=False):
-    degrees = {n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs(random_state=rng) for n, d in graph.degree()}
+def estimate_triangles(
+    graph: nx.Graph,
+    privacy_budget: float,
+    alpha: float,
+    beta: float,
+    seed: SeedSequence,
+    rng,
+    lazy=False,
+):
+    degrees = {
+        n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs(random_state=rng)
+        for n, d in graph.degree()
+    }
 
     compressed_budget = EDGE_SHARE * privacy_budget / alpha / 2
     if lazy:
         compressed_graph = LazyGraphCRR(graph, compressed_budget, alpha, beta, seed)
-        count, noise = count_triangles_from_lazy_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
+        count, noise = count_triangles_from_lazy_graph(
+            graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng
+        )
     else:
         compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
-        count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
+        count, noise = count_triangles_from_compressed_graph(
+            graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng
+        )
     download_cost = compressed_graph.upload_cost()
     huffman_cost = compressed_graph.huffman_cost()
     return count, noise, download_cost, huffman_cost
@@ -124,8 +158,8 @@ def get_parser():
         default=BETA,
         help="parameter beta of the algorithm",
     )
-    parser.add_argument("-l", "--lazy", action='store_true')
-    parser.add_argument("-s","--entropy", type=int, default=ENTROPY)
+    parser.add_argument("-l", "--lazy", action="store_true")
+    parser.add_argument("-s", "--entropy", type=int, default=ENTROPY)
     parser.add_argument("-i", "--nb_iter", type=int, default=1, help="number of runs")
     return parser
 
@@ -149,7 +183,15 @@ def experience_triangle(graph, seed, rng, param):
             extracted_graph = graph
         true_triangle = sum(nx.triangles(extracted_graph).values()) / 3
         start_time = time.time()
-        count, noise, d_cost, h_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng, param["lazy"])
+        count, noise, d_cost, h_cost = estimate_triangles(
+            extracted_graph,
+            param["privacy_budget"],
+            param["alpha"],
+            param["beta"],
+            seeds[i],
+            rng,
+            param["lazy"],
+        )
         result = pd.DataFrame(
             [
                 {
@@ -165,8 +207,7 @@ def experience_triangle(graph, seed, rng, param):
             ]
         )
         result.to_csv(
-            DIR_LOGS
-            / "triangles_{exp_name}_g{graph}_n{graph_size}_e{privacy_budget}_"
+            DIR_LOGS / "triangles_{exp_name}_g{graph}_n{graph_size}_e{privacy_budget}_"
             "a{alpha}_{date}.csv".format(**param, date=time.time()),
             index=False,
         )
