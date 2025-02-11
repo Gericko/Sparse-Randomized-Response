@@ -56,6 +56,7 @@ def experience_dna(frequencies, seed, rng, param):
                 **param,
                 "nb_variations": len(diffs),
                 "nb_locations": len(frequencies),
+                "non_private_upload_cost": vect.non_private_communication_cost,
                 "expected_upload_cost": vect.expected_communication_cost,
                 "huffman_upload_cost": vect.communication_cost(),
                 "execution_time": execution_time,
@@ -114,6 +115,9 @@ if __name__ == "__main__":
     seed = SeedSequence(config["entropy"])
     rng = np.random.default_rng(seed)
     df = pd.read_csv(DATA_DIR / DNA_FILE, sep=" ", names=["chr", "pos", "ref", "alt", "proba"])
+    print("The original dataset contains {} variations".format(len(df)))
     df_clipped = clip_frequency(df, config["threshold"])
+    percentage = len(df_clipped) / len(df) * 100
+    print("After clipped at {}, the dataset contains {} variations, ie. {:.2f}%".format(config["threshold"], len(df_clipped), percentage))
     proba_vect = df_clipped["proba"].to_numpy()
     experience_dna(proba_vect, seed, rng, config)

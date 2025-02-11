@@ -1,4 +1,5 @@
 from itertools import combinations, islice
+from collections import defaultdict
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -11,7 +12,7 @@ from pathlib import Path
 import argparse
 
 from graph import smaller_neighbors, load_wiki, load_gplus, extract_random_subgraph
-from compressed_graph import GraphCRR
+from compressed_graph import GraphCRR, LazyGraphCRR, CompressedAdjacencyList
 
 MARGIN_DEGREES = 150
 DEGREE_SHARE = 0.1
@@ -37,14 +38,46 @@ def count_triangles_from_compressed_graph(graph: nx.Graph, compressed_graph: Gra
     return count, noise
 
 
-def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence, rng):
+def count_triangles_from_lazy_graph(graph: nx.Graph, lazy_graph: LazyGraphCRR, privacy_budget: float, degrees: dict[int,float], rng):
+    rv = laplace(0, 1 / privacy_budget)
+
+    noise = 0
+    clipped_neighbors = {}
+    upper_neighbors = defaultdict(list)
+    expe = np.exp(privacy_budget)
+    for node in graph:
+        threshold = max(ceil(degrees[node] + MARGIN_DEGREES), 0)
+        clipped_neighbors[node] = sorted(islice(smaller_neighbors(graph, node), threshold))
+        for neighbors in clipped_neighbors[node]:
+            upper_neighbors[neighbors].append(node)
+        noise += (expe + 1) / (expe - 1) * threshold * rv.rvs(random_state=rng)
+
+    count = 0
+    for node in graph:
+        compressed_adjacency_list = lazy_graph.get_adjacency_list(node)
+        forks = defaultdict(int)
+        for neighbors in upper_neighbors[node]:
+            for two_hops in clipped_neighbors[neighbors]:
+                forks[two_hops] += 1
+        for two_hop, nb_2_paths in forks.items():
+            if node > two_hop:
+                count += nb_2_paths * compressed_adjacency_list.edge_estimation(two_hop)
+
+    return count, noise
+
+
+def estimate_triangles(graph: nx.Graph, privacy_budget: float, alpha: float, beta: float, seed: SeedSequence, rng, lazy=False):
     degrees = {n: laplace(d, 1 / (DEGREE_SHARE * privacy_budget)).rvs(random_state=rng) for n, d in graph.degree()}
 
     compressed_budget = EDGE_SHARE * privacy_budget / alpha / 2
-    compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
+    if lazy:
+        compressed_graph = LazyGraphCRR(graph, compressed_budget, alpha, beta, seed)
+        count, noise = count_triangles_from_lazy_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
+    else:
+        compressed_graph = GraphCRR(graph, compressed_budget, alpha, beta, seed)
+        count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
     download_cost = compressed_graph.upload_cost()
     huffman_cost = compressed_graph.huffman_cost()
-    count, noise = count_triangles_from_compressed_graph(graph, compressed_graph, TRIANGLE_SHARE * privacy_budget, degrees, rng)
     return count, noise, download_cost, huffman_cost
 
 
@@ -67,7 +100,7 @@ def get_parser():
         "-n",
         "--graph_size",
         type=int,
-        default=7115,
+        default=1000,
         help="size of the graph to extract",
     )
     parser.add_argument(
@@ -91,6 +124,7 @@ def get_parser():
         default=BETA,
         help="parameter beta of the algorithm",
     )
+    parser.add_argument("-l", "--lazy", action='store_true')
     parser.add_argument("-s","--entropy", type=int, default=ENTROPY)
     parser.add_argument("-i", "--nb_iter", type=int, default=1, help="number of runs")
     return parser
@@ -115,7 +149,7 @@ def experience_triangle(graph, seed, rng, param):
             extracted_graph = graph
         true_triangle = sum(nx.triangles(extracted_graph).values()) / 3
         start_time = time.time()
-        count, noise, d_cost, h_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng)
+        count, noise, d_cost, h_cost = estimate_triangles(extracted_graph, param["privacy_budget"], param["alpha"], param["beta"], seeds[i], rng, param["lazy"])
         result = pd.DataFrame(
             [
                 {

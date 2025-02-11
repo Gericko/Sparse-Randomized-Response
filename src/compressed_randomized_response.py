@@ -13,7 +13,14 @@ from poisson_private_representation import encode_ppr
 
 
 def huffman_cost(k: int) -> float:
-    return np.log2(k) + np.log2(1 + np.log2(k)) + 2
+    if k == 0:
+        return 1
+    else:
+        return np.log2(k) + np.log2(1 + np.log2(k)) + 2
+
+
+def get_non_private_communication_cost(diff_from_ref: list[tuple[int, Any, Any]]):
+    return sum(huffman_cost(k) for k, _, _ in diff_from_ref)
 
 
 class _CompressedBlock:
@@ -52,11 +59,12 @@ def _encode_block(diff_from_ref: list[tuple[int, Any, Any]], Q, epsilon: float, 
 
 
 class CompressedVector:
-    def __init__(self, compressed_blocks: list[_CompressedBlock], block_size: int, permutation: Callable[[int], int], expected_cost:float):
+    def __init__(self, compressed_blocks: list[_CompressedBlock], block_size: int, permutation: Callable[[int], int], expected_cost:float, non_private_communication_cost: float):
         self.compressed_blocks = compressed_blocks
         self.block_size = block_size
         self.permutation = permutation
         self.expected_communication_cost = expected_cost
+        self.non_private_communication_cost = non_private_communication_cost
 
     def decode(self, index: int):
         q, r = divmod(self.permutation(index), self.block_size)
@@ -96,7 +104,9 @@ def encode_vector(diff_from_ref: list[tuple], Q, epsilon: float, alpha: float, s
     b = min(1.0, (alpha - 1) / 2)
     expected_cost = (1 + np.log(2)) * epsilon * len(diff_from_ref) + ((1 + np.log(2)) * np.log2(3.56) / b + 2) * nb_blocks
 
-    return CompressedVector(compressed_blocks, block_size, permutation, expected_cost)
+    non_private_communication_cost = get_non_private_communication_cost(diff_from_ref)
+
+    return CompressedVector(compressed_blocks, block_size, permutation, expected_cost, non_private_communication_cost)
 
 
 def get_Q_RR_from_reference(reference, choices, epsilon):

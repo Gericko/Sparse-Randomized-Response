@@ -98,6 +98,7 @@ def experience_ratings(rating_by_user: pd.DataFrame, nb_movies, seed, rng, param
             {
                 **param,
                 "nb_ratings": len(row["ratings"]),
+                "non_private_upload_cost": vect.non_private_communication_cost,
                 "expected_upload_cost": vect.expected_communication_cost,
                 "huffman_upload_cost": vect.communication_cost(),
                 "execution_time": execution_time,
