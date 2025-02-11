@@ -49,7 +49,9 @@ def experience_dna(frequencies, seed, rng, param):
         diffs = get_random_vector(frequencies, rng)
         nb_blocks = max(1, ceil(param["beta"] * epsilon * len(diffs)))
         start_time = time.time()
-        vect = encode_vector(diffs, Q, epsilon, param["alpha"], seeds[i], len(frequencies), nb_blocks)
+        vect = encode_vector(
+            diffs, Q, epsilon, param["alpha"], seeds[i], len(frequencies), nb_blocks
+        )
         execution_time = time.time() - start_time
         result_list.append(
             {
@@ -64,17 +66,14 @@ def experience_dna(frequencies, seed, rng, param):
         )
     result_df = pd.DataFrame(result_list)
     result_df.to_csv(
-        DIR_LOGS
-        / "dna_{exp_name}_n{nb_iter}_e{privacy_budget}_"
+        DIR_LOGS / "dna_{exp_name}_n{nb_iter}_e{privacy_budget}_"
         "a{alpha}_{date}.csv".format(**param, date=time.time()),
         index=False,
     )
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(
-        description="experience on DNA SNPS"
-    )
+    parser = argparse.ArgumentParser(description="experience on DNA SNPS")
     parser.add_argument(
         "-o", "--exp_name", type=str, default="test", help="name of the experiment"
     )
@@ -114,10 +113,16 @@ if __name__ == "__main__":
     config = vars(get_parser().parse_args())
     seed = SeedSequence(config["entropy"])
     rng = np.random.default_rng(seed)
-    df = pd.read_csv(DATA_DIR / DNA_FILE, sep=" ", names=["chr", "pos", "ref", "alt", "proba"])
+    df = pd.read_csv(
+        DATA_DIR / DNA_FILE, sep=" ", names=["chr", "pos", "ref", "alt", "proba"]
+    )
     print("The original dataset contains {} variations".format(len(df)))
     df_clipped = clip_frequency(df, config["threshold"])
     percentage = len(df_clipped) / len(df) * 100
-    print("After clipped at {}, the dataset contains {} variations, ie. {:.2f}%".format(config["threshold"], len(df_clipped), percentage))
+    print(
+        "After clipped at {}, the dataset contains {} variations, ie. {:.2f}%".format(
+            config["threshold"], len(df_clipped), percentage
+        )
+    )
     proba_vect = df_clipped["proba"].to_numpy()
     experience_dna(proba_vect, seed, rng, config)

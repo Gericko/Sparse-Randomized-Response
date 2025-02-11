@@ -1,16 +1,22 @@
+# This is a modified file from the source code of the following article:
+#
+# Liu, Yanxiao, Wei-Ning Chen, Ayfer Özgür, and Cheuk Ting Li.
+# "Universal Exact Compression of Differentially Private Mechanisms."
+# arXiv preprint arXiv:2405.20782 (2024).
+
+
 import numpy as np
-from numpy.random import SeedSequence, default_rng
 import scipy as sp
 import heapq
 
-from counter_based_prng import CounterGenerator
-
 
 def encode_ppr(r, r_bd, private_gen, alpha=2.0):
-    """ Perform encoding
+    """Perform encoding
     r: Function that gives the ratio dP/dQ
     r_bd: An upper-bound on the values of r
-    Returns: k where k is the index
+    private_gen: Private randomness generator
+    alpha: parameter of the algorithm
+    Returns: k where k is the index of the generated data
     """
 
     u = 0
@@ -28,7 +34,7 @@ def encode_ppr(r, r_bd, private_gen, alpha=2.0):
         b = (u * alpha / (1 / np.e + g1)) ** alpha
         bpia = b ** (1 / alpha)
 
-        if n == 0 and b * r_bd ** -alpha >= ws:
+        if n == 0 and b * r_bd**-alpha >= ws:
             return ks
 
         if private_gen.random() < sprob:

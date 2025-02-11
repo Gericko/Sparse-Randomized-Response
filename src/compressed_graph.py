@@ -4,14 +4,22 @@ import pandas as pd
 from numpy.random import SeedSequence
 from math import ceil
 import time
-
-from sympy import false
 from tqdm import trange
 from pathlib import Path
 import argparse
 
-from graph import smaller_neighbors, load_wiki, load_gplus, extract_random_subgraph, down_degree
-from compressed_randomized_response import CompressedVector, encode_vector, get_Q_RR_from_neutral
+from graph import (
+    smaller_neighbors,
+    load_wiki,
+    load_gplus,
+    extract_random_subgraph,
+    down_degree,
+)
+from compressed_randomized_response import (
+    CompressedVector,
+    encode_vector,
+    get_Q_RR_from_neutral,
+)
 
 
 MARGIN_DEGREES = 150
@@ -23,27 +31,17 @@ DIR_LOGS = BASE_DIR / "logs"
 
 
 def get_diff_list(graph, node):
-    return [
-        (v, 1, 0)
-        for v in smaller_neighbors(graph, node)
-    ]
+    return [(v, 1, 0) for v in smaller_neighbors(graph, node)]
 
 
-def publish_adjacency_list_crr(graph: nx.Graph, node, Q, privacy_budget, alpha, beta, seed) -> CompressedVector:
+def publish_adjacency_list_crr(
+    graph: nx.Graph, node, Q, privacy_budget, alpha, beta, seed
+) -> CompressedVector:
     n = graph.number_of_nodes()
     nb_blocks = max(1, ceil(beta * privacy_budget * down_degree(graph, node)))
     diffs = get_diff_list(graph, node)
     vect = encode_vector(diffs, Q, privacy_budget, alpha, seed, n, nb_blocks)
     return vect
-
-
-def publish_edge_list_crr(graph: nx.Graph, Q, privacy_budget, alpha, beta, seed):
-    n = graph.number_of_nodes()
-    seeds = seed.spawn(n)
-    edge_list = {}
-    for i, node in enumerate(graph):
-        edge_list[node] = publish_adjacency_list_crr(graph, node, Q, privacy_budget, alpha, beta, seeds[i])
-    return edge_list
 
 
 class CompressedAdjacencyList:
@@ -52,11 +50,15 @@ class CompressedAdjacencyList:
         self.privacy_budget = privacy_budget
         self.seed = seed
         Q = get_Q_RR_from_neutral(0, [1], privacy_budget)
-        self.publish_adjacency_list = publish_adjacency_list_crr(graph, node, Q, privacy_budget, alpha, beta, seed)
+        self.publish_adjacency_list = publish_adjacency_list_crr(
+            graph, node, Q, privacy_budget, alpha, beta, seed
+        )
 
     def has_edge(self, i: int) -> bool:
         if i > self.node:
-            raise ValueError("the index needs to be smaller than the index of the publishing node")
+            raise ValueError(
+                "the index needs to be smaller than the index of the publishing node"
+            )
         return bool(self.publish_adjacency_list.decode(i))
 
     def edge_estimation(self, i: int) -> float:
@@ -79,7 +81,9 @@ class GraphCRR:
         """
         seeds = seed.spawn(graph.number_of_nodes())
         self.published_edges = {
-            node: CompressedAdjacencyList(graph, node, privacy_budget, alpha, beta, seeds[i])
+            node: CompressedAdjacencyList(
+                graph, node, privacy_budget, alpha, beta, seeds[i]
+            )
             for i, node in enumerate(graph)
         }
 
@@ -94,10 +98,14 @@ class GraphCRR:
         return self.published_edges[j].edge_estimation(i)
 
     def upload_cost(self):
-        return sum(adjacency.upload_cost() for adjacency in self.published_edges.values())
+        return sum(
+            adjacency.upload_cost() for adjacency in self.published_edges.values()
+        )
 
     def huffman_cost(self):
-        return sum(adjacency.huffman_cost() for adjacency in self.published_edges.values())
+        return sum(
+            adjacency.huffman_cost() for adjacency in self.published_edges.values()
+        )
 
 
 class LazyGraphCRR:
@@ -114,9 +122,18 @@ class LazyGraphCRR:
 
     def get_adjacency_list(self, node: int) -> CompressedAdjacencyList:
         if self.has_been_published[node]:
-            raise ValueError("The adjacency list of node {} has already been published".format(node))
+            raise ValueError(
+                "The adjacency list of node {} has already been published".format(node)
+            )
         self.has_been_published[node] = True
-        compressed_adjacency_list = CompressedAdjacencyList(self.graph, node, self.privacy_budget, self.alpha, self.beta, self.seeds[node])
+        compressed_adjacency_list = CompressedAdjacencyList(
+            self.graph,
+            node,
+            self.privacy_budget,
+            self.alpha,
+            self.beta,
+            self.seeds[node],
+        )
         self._upload_cost += compressed_adjacency_list.upload_cost()
         self._huffman_cost += compressed_adjacency_list.huffman_cost()
         return compressed_adjacency_list
@@ -128,7 +145,7 @@ class LazyGraphCRR:
 
     def upload_cost(self):
         if not self.is_fully_published():
-                raise ValueError("The adjacency list has not been fully published")
+            raise ValueError("The adjacency list has not been fully published")
         return self._upload_cost
 
     def huffman_cost(self):
@@ -206,7 +223,9 @@ def experience_adjacency(graph, seed, rng, param):
             extracted_graph = graph
         node = rng.choice(list(extracted_graph.nodes()), 1)[0]
         start_time = time.time()
-        vect = publish_adjacency_list_crr(extracted_graph, node, Q, epsilon, param["alpha"], param["beta"], seeds[i])
+        vect = publish_adjacency_list_crr(
+            extracted_graph, node, Q, epsilon, param["alpha"], param["beta"], seeds[i]
+        )
         execution_time = time.time() - start_time
         result_list.append(
             {
@@ -221,11 +240,10 @@ def experience_adjacency(graph, seed, rng, param):
         )
     result_df = pd.DataFrame(result_list)
     result_df.to_csv(
-            DIR_LOGS
-            / "adjacency_{exp_name}_g{graph}_n{graph_size}_e{privacy_budget}_"
-            "a{alpha}_{date}.csv".format(**param, date=time.time()),
-            index=False,
-        )
+        DIR_LOGS / "adjacency_{exp_name}_g{graph}_n{graph_size}_e{privacy_budget}_"
+        "a{alpha}_{date}.csv".format(**param, date=time.time()),
+        index=False,
+    )
 
 
 if __name__ == "__main__":

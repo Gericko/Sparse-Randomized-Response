@@ -68,12 +68,22 @@ def experience_distance(rating_by_user: pd.DataFrame, nb_movies, seed, rng, para
     Q = get_Q_RR_from_neutral(0, [1], epsilon)
     result_list = []
     for i in trange(param["nb_iter"]):
-        sampled = rating_by_user.sample(n=2, replace=False, random_state=rng, ignore_index=False)
+        sampled = rating_by_user.sample(
+            n=2, replace=False, random_state=rng, ignore_index=False
+        )
         user_1 = sampled.loc[sampled.index[0]]
         user_2 = sampled.loc[sampled.index[1]]
         nb_blocks = max(1, ceil(param["beta"] * epsilon * len(user_2["ratings"])))
         start_time = time.time()
-        vect = encode_vector(user_2["ratings"], Q, epsilon, param["alpha"], seeds[i], nb_movies, nb_blocks)
+        vect = encode_vector(
+            user_2["ratings"],
+            Q,
+            epsilon,
+            param["alpha"],
+            seeds[i],
+            nb_movies,
+            nb_blocks,
+        )
         real_distance = get_real_distance(user_1, user_2)
         estimated_distance = estimate_distance(user_1, vect, epsilon)
         execution_time = time.time() - start_time
@@ -91,11 +101,10 @@ def experience_distance(rating_by_user: pd.DataFrame, nb_movies, seed, rng, para
         )
     result_df = pd.DataFrame(result_list)
     result_df.to_csv(
-            DIR_LOGS
-            / "distance_{exp_name}_d{dataset}_i{nb_iter}_e{privacy_budget}_"
-            "a{alpha}_{date}.csv".format(**param, date=time.time()),
-            index=False,
-        )
+        DIR_LOGS / "distance_{exp_name}_d{dataset}_i{nb_iter}_e{privacy_budget}_"
+        "a{alpha}_{date}.csv".format(**param, date=time.time()),
+        index=False,
+    )
 
 
 def get_parser():

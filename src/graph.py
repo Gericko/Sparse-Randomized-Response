@@ -53,7 +53,7 @@ def show_infos(g: nx.Graph) -> None:
             sum(d for n, d in g.degree()) / g.number_of_nodes(),
             max(down_degree(g, node) for node in g.nodes),
         ),
-        flush=True
+        flush=True,
     )
 
 

@@ -3,8 +3,6 @@ import pandas as pd
 from numpy.random import SeedSequence
 from math import ceil
 import time
-
-from sympy.abc import epsilon
 from tqdm import tqdm
 from pathlib import Path
 import argparse
@@ -58,16 +56,41 @@ def get_ratings_small(only_viewing=False):
         DATA_DIR / MOVIE_FILE_SMALL,
         delimiter="|",
         encoding="ISO-8859-1",
-        names=["movieId", "title", "release date", "video release date",
-            "IMDb URL", "unknown", "Action", "Adventure", "Animation",
-            "Children's", "Comedy", "Crime", "Documentary", "Drama", "Fantasy",
-            "Film-Noir", "Horror", "Musical", "Mystery", "Romance", "Sci-Fi",
-            "Thriller", "War", "Western"]
+        names=[
+            "movieId",
+            "title",
+            "release date",
+            "video release date",
+            "IMDb URL",
+            "unknown",
+            "Action",
+            "Adventure",
+            "Animation",
+            "Children's",
+            "Comedy",
+            "Crime",
+            "Documentary",
+            "Drama",
+            "Fantasy",
+            "Film-Noir",
+            "Horror",
+            "Musical",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Thriller",
+            "War",
+            "Western",
+        ],
     )
     correspondences = get_movie_correspondence_dict(movie_df)
     nb_movies = len(correspondences)
 
-    rating_df = pd.read_csv(DATA_DIR / RATING_FILE_SMALL, delimiter="\t", names=["userId", "movieId", "rating", "timestamp"])
+    rating_df = pd.read_csv(
+        DATA_DIR / RATING_FILE_SMALL,
+        delimiter="\t",
+        names=["userId", "movieId", "rating", "timestamp"],
+    )
     rating_by_user = preprocess_ratings(rating_df, correspondences, only_viewing)
 
     return rating_by_user, nb_movies
@@ -86,13 +109,25 @@ def experience_ratings(rating_by_user: pd.DataFrame, nb_movies, seed, rng, param
     rng = np.random.default_rng(rng)
     seeds = seed.spawn(param["nb_iter"])
     epsilon = param["privacy_budget"] / param["alpha"] / 2
-    Q = get_Q_RR_from_neutral(0.0, [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0], epsilon)
+    Q = get_Q_RR_from_neutral(
+        0.0, [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0], epsilon
+    )
     result_list = []
-    sampled = rating_by_user.sample(n=param["nb_iter"], replace=True, random_state=rng, ignore_index=True)
+    sampled = rating_by_user.sample(
+        n=param["nb_iter"], replace=True, random_state=rng, ignore_index=True
+    )
     for index, row in tqdm(sampled.iterrows(), total=sampled.shape[0]):
         nb_blocks = max(1, ceil(param["beta"] * epsilon * len(row["ratings"])))
         start_time = time.time()
-        vect = encode_vector(row["ratings"], Q, epsilon, param["alpha"], seeds[index], nb_movies, nb_blocks)
+        vect = encode_vector(
+            row["ratings"],
+            Q,
+            epsilon,
+            param["alpha"],
+            seeds[index],
+            nb_movies,
+            nb_blocks,
+        )
         execution_time = time.time() - start_time
         result_list.append(
             {
@@ -106,17 +141,14 @@ def experience_ratings(rating_by_user: pd.DataFrame, nb_movies, seed, rng, param
         )
     result_df = pd.DataFrame(result_list)
     result_df.to_csv(
-        DIR_LOGS
-        / "recommender_{exp_name}_n{nb_iter}_e{privacy_budget}_"
+        DIR_LOGS / "recommender_{exp_name}_n{nb_iter}_e{privacy_budget}_"
         "a{alpha}_{date}.csv".format(**param, date=time.time()),
         index=False,
     )
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(
-        description="experience on compressed ratings"
-    )
+    parser = argparse.ArgumentParser(description="experience on compressed ratings")
     parser.add_argument(
         "-o", "--exp_name", type=str, default="test", help="name of the experiment"
     )
