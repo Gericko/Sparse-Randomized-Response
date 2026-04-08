@@ -21,6 +21,10 @@ preferred-citation:
     - family-names: "Shibuya"
       given-names: "Tetsuo"
   year: 2026
-  booktitle: "ACM Asia Conference on Computer and Communications Security"
-  eventtitle: "AsiaCCS"
+  conference:
+      name: "ACM Asia Conference on Computer and Communications Security"
+      city: Bangalore
+      country: India
+      date-start: 2026-06-01
+      date-end: 2026-06-05
   doi: "10.1145/3779208.3805989"
