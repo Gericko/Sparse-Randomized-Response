@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the repository and the associated paper."
+title: "Sparse Randomized Response"
+type: software
+
+authors:
+  - family-names: "Hillebrand"
+    given-names: "Quentin"
+    email: "quentin.hillebrand@di.ku.dk"
+    affiliation: "BARC, University of Copenhagen"
+  - family-names: "Suppakitpaisarn"
+    given-names: "Vorapong"
+    email: "vorapong@is.s.u-tokyo.ac.jp"
+    affiliation: "The University of Tokyo"
+  - family-names: "Shibuya"
+    given-names: "Tetsuo"
+    email: "tshibuya@hgc.jp"
+    affiliation: "The University of Tokyo"
+
+repository-code: "https://github.com/Gericko/Sparse-Randomized-Response"
+url: "https://github.com/Gericko/Sparse-Randomized-Response"
+
+preferred-citation:
+  type: paper-conference
+  title: "Communication-Efficient Publication of Sparse Vectors under Differential Privacy via Poisson Private Representation"
+  authors:
+    - family-names: "Hillebrand"
+      given-names: "Quentin"
+    - family-names: "Suppakitpaisarn"
+      given-names: "Vorapong"
+    - family-names: "Shibuya"
+      given-names: "Tetsuo"
+  year: 2026
+  booktitle: "Proceedings of the ACM Asia Conference on Computer and Communications Security (ASIA CCS '26)"
+  conference:
+    name: "ACM Asia Conference on Computer and Communications Security"
+    location: "Bangalore, India"
+    start: 2026-06-01
+    end: 2026-06-05
+  doi: "10.1145/3779208.3805989"
