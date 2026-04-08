@@ -2,6 +2,13 @@ cff-version: 1.2.0
 message: "If you use this repository, please cite the associated paper."
 title: "Sparse Randomized Response"
 type: software
+authors:
+  - family-names: "Hillebrand"
+    given-names: "Quentin"
+  - family-names: "Suppakitpaisarn"
+    given-names: "Vorapong"
+  - family-names: "Shibuya"
+    given-names: "Tetsuo"
 
 preferred-citation:
   type: conference-paper
@@ -14,6 +21,6 @@ preferred-citation:
     - family-names: "Shibuya"
       given-names: "Tetsuo"
   year: 2026
-  conference-title: "ACM Asia Conference on Computer and Communications Security"
-  conference-acronym: "ASIA CCS '26"
+  booktitle: "ACM Asia Conference on Computer and Communications Security"
+  eventtitle: "AsiaCCS"
   doi: "10.1145/3779208.3805989"
